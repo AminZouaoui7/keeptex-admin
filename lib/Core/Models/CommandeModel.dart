@@ -1,3 +1,5 @@
+import 'TailleCommandeModel.dart';
+
 class CommandeModel {
   final String? id;
   final String type;
@@ -18,7 +20,10 @@ class CommandeModel {
   final DateTime updatedAt;
   final String userId;
   final String clientName;
-  bool acomptePaye; // ✅ champ corrigé
+  bool acomptePaye;
+
+  /// ✅ Nouvelle propriété pour les tailles
+  final List<TailleCommandeModel> tailles;
 
   CommandeModel({
     this.id,
@@ -40,7 +45,8 @@ class CommandeModel {
     required this.updatedAt,
     required this.userId,
     required this.clientName,
-    required this.acomptePaye, // ✅ ici aussi
+    required this.acomptePaye,
+    required this.tailles, // ✅ obligatoire
   });
 
   factory CommandeModel.fromJson(Map<String, dynamic> json) {
@@ -64,7 +70,13 @@ class CommandeModel {
       clientName: json['user']?['name'] ?? 'Client inconnu',
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
-      acomptePaye: json['acomptepaye'] ?? false, // ✅ MAJ avec clé backend exacte
+      acomptePaye: json['acomptepaye'] ?? false,
+
+      /// ✅ Parse les tailles
+      tailles: (json['tailles'] as List<dynamic>?)
+          ?.map((e) => TailleCommandeModel.fromJson(e))
+          .toList() ??
+          [],
     );
   }
 
@@ -89,7 +101,8 @@ class CommandeModel {
       'updatedat': updatedAt.toIso8601String(),
       'userid': userId,
       'client_name': clientName,
-      'acomptepaye': acomptePaye, // ✅ correspond au nom backend
+      'acomptepaye': acomptePaye,
+      'tailles': tailles.map((e) => e.toJson()).toList(), // ✅ export JSON
     };
   }
 

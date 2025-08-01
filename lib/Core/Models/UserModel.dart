@@ -38,14 +38,14 @@ class UserModel {
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['_id']?.toString() ?? json['id']?.toString(),
-      name: json['name'],
-      email: json['email'],
+      name: json['name']?.toString(), // ✅ sécurisé pour int
+      email: json['email']?.toString(), // ✅ sécurisé
       password: json['password'],
       role: json['role'],
       resetPasswordToken: json['resetpasswordToken'],
       createdAt: json['createdat'] != null ? DateTime.tryParse(json['createdat']) : null,
       updatedAt: json['updatedat'] != null ? DateTime.tryParse(json['updatedat']) : null,
-      numeroTelephone: json['num'],
+      numeroTelephone: json['num']?.toString(), // ✅ sécurisé
       etat: json['etat'],
       salaireH: json['salaire_h'] != null ? (json['salaire_h'] as num).toDouble() : null,
       conge: json['conge'],

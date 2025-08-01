@@ -16,7 +16,12 @@ class BaseScaffold extends StatelessWidget {
         child: Appbarwidget(),
       ),
       drawer: DrawerPage(), // ✅ Add this line
-      body: body,
+      // Wrap the body in a SingleChildScrollView to ensure everything is scrollable
+      body: SafeArea(
+        child: body,
+      ),
+      // Ensure the scaffold can resize properly
+      resizeToAvoidBottomInset: true,
     );
   }
 }

@@ -50,7 +50,12 @@ class CommandeService {
   Future<CommandeModel> getCommandeById(String id) async {
     final options = await _getAuthHeaders();
     final response = await dio.get('/commandes/$id', options: options);
-    return CommandeModel.fromJson(response.data);
+    final data = response.data;
+
+    final commandeData = data['data'] ?? data; // très important
+    print("✅ Commande reçue : $commandeData");
+
+    return CommandeModel.fromJson(commandeData);
   }
 
   Future<void> createCommande(CommandeModel commande) async {
@@ -84,7 +89,16 @@ class CommandeService {
 
   Future<List<CommandeModel>> getCommandesByUser(String userId) async {
     final options = await _getAuthHeaders();
-    final response = await dio.get('/users/$userId/commandes', options: options);
-    return (response.data as List).map((json) => CommandeModel.fromJson(json)).toList();
+    final response = await dio.get('/commandes/user/$userId', options: options);
+
+    final data = response.data;
+
+    // Assure-toi que 'data' existe dans la réponse
+    if (data is Map && data.containsKey('data')) {
+      final commandesList = data['data'] as List;
+      return commandesList.map((json) => CommandeModel.fromJson(json)).toList();
+    } else {
+      throw Exception('Unexpected response format: ${response.data}');
+    }
   }
 }

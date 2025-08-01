@@ -9,8 +9,8 @@ class UserService {
   UserService() {
     dio = Dio(BaseOptions(
       baseUrl: 'http://192.168.1.128:5000/api',
-      connectTimeout: Duration(seconds: 5),
-      receiveTimeout: Duration(seconds: 3),
+      connectTimeout: Duration(seconds: 30),
+      receiveTimeout: Duration(seconds: 15),
     ));
 
     // Ajouter des interceptors si nécessaire
@@ -65,8 +65,70 @@ class UserService {
 
   Future<List<UserModel>> getAllUsers() async {
     try {
-      final response = await dio.get('/users');
-      return (response.data as List).map((json) => UserModel.fromJson(json)).toList();
+      // Récupérer le token d'authentification
+      final token = await CacheHelper().getData(key: 'token');
+      
+      // Ajouter le token aux en-têtes de la requête
+      final response = await dio.get(
+        '/users',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+      
+      final data = response.data;
+      print('DEBUG: Response data from /users: $data');
+      
+      if (data is Map && data.containsKey('data')) {
+        // Vérifier si data['data'] est une liste
+        if (data['data'] is List) {
+          return (data['data'] as List).map((json) {
+            // Convertir Map<dynamic, dynamic> en Map<String, dynamic>
+            if (json is Map) {
+              final Map<String, dynamic> userMap = {};
+              json.forEach((key, value) {
+                userMap[key.toString()] = value;
+              });
+              return UserModel.fromJson(userMap);
+            } else {
+              throw Exception('Format de données utilisateur inattendu: ${json.runtimeType}');
+            }
+          }).toList();
+        } else if (data['data'] is Map) {
+          // Si data['data'] n'est pas une liste, créer une liste avec un seul élément
+          final Map<String, dynamic> userMap = {};
+          (data['data'] as Map).forEach((key, value) {
+            userMap[key.toString()] = value;
+          });
+          return [UserModel.fromJson(userMap)];
+        } else {
+          throw Exception('Format de données inattendu pour data["data"]: ${data['data'].runtimeType}');
+        }
+      } else if (data is List) {
+        return data.map((json) {
+          // Convertir Map<dynamic, dynamic> en Map<String, dynamic>
+          if (json is Map) {
+            final Map<String, dynamic> userMap = {};
+            json.forEach((key, value) {
+              userMap[key.toString()] = value;
+            });
+            return UserModel.fromJson(userMap);
+          } else {
+            throw Exception('Format de données utilisateur inattendu: ${json.runtimeType}');
+          }
+        }).toList();
+      } else if (data is Map) {
+        // Si la réponse est un objet unique, créer une liste avec un seul élément
+        final Map<String, dynamic> userMap = {};
+        data.forEach((key, value) {
+          userMap[key.toString()] = value;
+        });
+        return [UserModel.fromJson(userMap)];
+      } else {
+        throw Exception('Format de réponse inattendu: ${data.runtimeType}');
+      }
     } catch (e) {
       print('Erreur lors de la récupération des utilisateurs: $e');
       rethrow;
@@ -75,8 +137,41 @@ class UserService {
 
   Future<UserModel> getUserById(String id) async {
     try {
-      final response = await dio.get('/users/$id');
-      return UserModel.fromJson(response.data);
+      // Récupérer le token d'authentification
+      final token = await CacheHelper().getData(key: 'token');
+      
+      // Ajouter le token aux en-têtes de la requête
+      final response = await dio.get(
+        '/users/$id',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+      
+      final data = response.data;
+      print('DEBUG: Response data from /users/$id: $data');
+      
+      if (data is Map) {
+        if (data.containsKey('data')) {
+          // Convertir Map<dynamic, dynamic> en Map<String, dynamic>
+          final Map<String, dynamic> userData = {};
+          (data['data'] as Map).forEach((key, value) {
+            userData[key.toString()] = value;
+          });
+          return UserModel.fromJson(userData);
+        } else {
+          // Convertir Map<dynamic, dynamic> en Map<String, dynamic>
+          final Map<String, dynamic> userData = {};
+          data.forEach((key, value) {
+            userData[key.toString()] = value;
+          });
+          return UserModel.fromJson(userData);
+        }
+      } else {
+        throw Exception('Format de réponse inattendu: ${data.runtimeType}');
+      }
     } catch (e) {
       print('Erreur lors de la récupération de l\'utilisateur $id: $e');
       rethrow;
@@ -86,7 +181,19 @@ class UserService {
 
   Future<void> createUser(UserModel user) async {
     try {
-      await dio.post('/users', data: user.toJson());
+      // Récupérer le token d'authentification
+      final token = await CacheHelper().getData(key: 'token');
+      
+      // Ajouter le token aux en-têtes de la requête
+      await dio.post(
+        '/users', 
+        data: user.toJson(),
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
     } catch (e) {
       print('Erreur lors de la création de l\'utilisateur: $e');
       rethrow;
@@ -95,7 +202,19 @@ class UserService {
 
   Future<void> updateUser(String id, UserModel user) async {
     try {
-      await dio.put('/users/$id', data: user.toJson());
+      // Récupérer le token d'authentification
+      final token = await CacheHelper().getData(key: 'token');
+      
+      // Ajouter le token aux en-têtes de la requête
+      await dio.put(
+        '/users/$id', 
+        data: user.toJson(),
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
     } catch (e) {
       print('Erreur lors de la mise à jour de l\'utilisateur $id: $e');
       rethrow;
@@ -104,7 +223,18 @@ class UserService {
 
   Future<void> deleteUser(String id) async {
     try {
-      await dio.delete('/users/$id');
+      // Récupérer le token d'authentification
+      final token = await CacheHelper().getData(key: 'token');
+      
+      // Ajouter le token aux en-têtes de la requête
+      await dio.delete(
+        '/users/$id',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
     } catch (e) {
       print('Erreur lors de la suppression de l\'utilisateur $id: $e');
       rethrow;

@@ -117,7 +117,7 @@ class _AllOrdersPageState extends State<AllOrdersPage> {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('État mis à jour en "\$newEtat"'),
+                                  content: Text('État mis à jour en "$newEtat"'),
                                   backgroundColor: Colors.green,
                                 ),
                               );
