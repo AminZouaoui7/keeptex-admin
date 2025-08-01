@@ -16,7 +16,7 @@ class CommandeService {
     );
   }
 
-  Future<void> marquerAcompteCommePaye(int commandeId) async {
+  Future<void> marquerAcompteCommePaye(String commandeId) async {
     final token = await CacheHelper().getData(key: "token");
 
     final response = await dio.put(

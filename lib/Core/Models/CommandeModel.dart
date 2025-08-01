@@ -18,7 +18,7 @@ class CommandeModel {
   final DateTime updatedAt;
   final String userId;
   final String clientName;
-  bool accomptePaye;
+  bool acomptePaye; // ✅ champ corrigé
 
   CommandeModel({
     this.id,
@@ -40,9 +40,7 @@ class CommandeModel {
     required this.updatedAt,
     required this.userId,
     required this.clientName,
-    required this.accomptePaye, // ✅ ici aussi
-
-
+    required this.acomptePaye, // ✅ ici aussi
   });
 
   factory CommandeModel.fromJson(Map<String, dynamic> json) {
@@ -63,10 +61,10 @@ class CommandeModel {
       estimation: json['estimation']?.toString() ?? '',
       photo: json['photo'] ?? '',
       userId: json['userId']?.toString() ?? '',
-      clientName: json['user']?['name'] ?? 'Client inconnu', // 👤 nom depuis user
+      clientName: json['user']?['name'] ?? 'Client inconnu',
       createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updatedAt'] ?? '') ?? DateTime.now(),
-      accomptePaye: json['accomptePaye'] ?? false,
+      acomptePaye: json['acomptepaye'] ?? false, // ✅ MAJ avec clé backend exacte
     );
   }
 
@@ -91,6 +89,7 @@ class CommandeModel {
       'updatedat': updatedAt.toIso8601String(),
       'userid': userId,
       'client_name': clientName,
+      'acomptepaye': acomptePaye, // ✅ correspond au nom backend
     };
   }
 

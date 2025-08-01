@@ -271,7 +271,7 @@ class _OrderCardState extends State<OrderCard> {
                       Text('Acompte requis: ${widget.order.acompteRequis.toStringAsFixed(2)} €'),
                       const SizedBox(height: 8),
 
-                      if (!widget.order.accomptePaye)
+                      if (!widget.order.acomptePaye)
                         ElevatedButton.icon(
                           onPressed: () async {
                             final confirm = await showDialog<bool>(
@@ -294,7 +294,8 @@ class _OrderCardState extends State<OrderCard> {
 
                             if (confirm == true) {
                               try {
-                                await CommandeService().marquerAcompteCommePaye(widget.order.id! as int);
+                                await CommandeService().marquerAcompteCommePaye(widget.order.id!);
+
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
@@ -303,7 +304,7 @@ class _OrderCardState extends State<OrderCard> {
                                     ),
                                   );
                                   setState(() {
-                                    widget.order.accomptePaye = true;
+                                    widget.order.acomptePaye = true;
                                   });
                                 }
                               } catch (e) {
