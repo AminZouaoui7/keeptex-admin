@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../BaseScaffold.dart';
 import '../../Core/Models/CommandeModel.dart';
 import '../../Services/CommandeService.dart';
+import './order_details_page.dart';
 
 class AllOrdersPage extends StatefulWidget {
   const AllOrdersPage({super.key});
@@ -160,24 +161,28 @@ class _OrderCardState extends State<OrderCard> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSlide(
-      duration: const Duration(milliseconds: 300),
-      offset: Offset(0, 0),
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 300),
-        opacity: 1.0,
-        child: Card(
-          elevation: 6,
-          margin: const EdgeInsets.symmetric(vertical: 10),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+    return InkWell(
+      onTap: () {
+        // Naviguer vers la page de détails de la commande
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderDetailsPage(orderId: widget.order.id.toString()),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        );
+      },
+      child: Card(
+            elevation: 6,
+            margin: const EdgeInsets.symmetric(vertical: 10),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                   children: [
                     const Icon(Icons.receipt_long, color: Colors.teal),
                     const SizedBox(width: 8),
@@ -339,7 +344,6 @@ class _OrderCardState extends State<OrderCard> {
             ),
           ),
         ),
-      ),
     );
   }
 }

@@ -8,7 +8,7 @@ class UserService {
 
   UserService() {
     dio = Dio(BaseOptions(
-      baseUrl: 'http://192.168.1.128:5000/api',
+      baseUrl: 'http://172.21.160.1:5000/api',
       connectTimeout: Duration(seconds: 30),
       receiveTimeout: Duration(seconds: 15),
     ));
@@ -196,6 +196,45 @@ class UserService {
       );
     } catch (e) {
       print('Erreur lors de la création de l\'utilisateur: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> addEmployee(String name, {String? numeroTelephone, String? etat, double? salaireH, String? cin}) async {
+    try {
+      // Récupérer le token d'authentification
+      final token = await CacheHelper().getData(key: 'token');
+      
+      // Générer un timestamp pour l'email et le mot de passe uniques
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      
+      // Préparer les données pour l'API
+      final Map<String, dynamic> data = {
+        'name': name,
+        // Champs générés automatiquement selon les spécifications
+        'email': 'timestamp$timestamp@keeptemp.com', // Email temporaire unique
+        'password': 'Keeptemp@123', // Mot de passe par défaut sécurisé
+        'emailConfirmed': false, // Statut emailConfirmed défini à false
+      };
+      
+      // Ajouter les champs optionnels s'ils sont fournis
+      if (numeroTelephone != null) data['num'] = numeroTelephone;
+      if (etat != null) data['etat'] = etat;
+      if (salaireH != null) data['salaire_h'] = salaireH;
+      if (cin != null) data['cin'] = cin;
+      
+      // Appeler le nouvel endpoint
+      await dio.post(
+        '/users/add-employee',
+        data: data,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+    } catch (e) {
+      print('Erreur lors de l\'ajout de l\'employé: $e');
       rethrow;
     }
   }

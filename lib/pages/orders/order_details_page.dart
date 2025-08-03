@@ -20,6 +20,18 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   String? _errorMessage;
   CommandeModel? _order;
 
+  final BoxDecoration cardStyle = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.05),
+        blurRadius: 8,
+        offset: const Offset(0, 4),
+      ),
+    ],
+  );
+
   @override
   void initState() {
     super.initState();
@@ -59,23 +71,27 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // En-tête avec bouton de retour
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Détails de la Commande ${widget.orderId}',
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Commande #${widget.orderId}',
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0f3460),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 20),
-            
-            // Contenu principal
             if (_isLoading)
               const Expanded(
                 child: Center(child: CircularProgressIndicator()),
@@ -101,238 +117,165 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                 ),
               )
             else if (_order == null)
-              const Expanded(
-                child: Center(child: Text('Commande non trouvée')),
-              )
-            else
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildStatusCard(),
-                      const SizedBox(height: 16),
-                      _buildGeneralInfoCard(),
-                      const SizedBox(height: 16),
-                      _buildProductDetailsCard(),
-                      const SizedBox(height: 16),
-                      _buildFinancialInfoCard(),
-                      if (_order!.description.isNotEmpty) ...[  
-                        const SizedBox(height: 16),
-                        _buildDescriptionCard(),
-                      ],
-                    ],
+                const Expanded(
+                  child: Center(child: Text('Commande non trouvée')),
+                )
+              else
+                Expanded(
+                  child: Scrollbar(
+                    thumbVisibility: true,
+                    thickness: 8,
+                    radius: const Radius.circular(12),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 16),
+                          _buildCard(_buildGeneralInfoCard()),
+                          _buildCard(_buildProductDetailsCard()),
+                          _buildCard(_buildFinancialInfoCard()),
+                          if (_order!.description.isNotEmpty)
+                            _buildCard(_buildDescriptionCard()),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatusCard() {
-    // Déterminer la couleur en fonction de l'état de la commande
-    Color statusColor;
-    IconData statusIcon;
-    
-    switch (_order!.etat.toLowerCase()) {
-      case 'en attente':
-        statusColor = Colors.orange;
-        statusIcon = Icons.hourglass_empty;
-        break;
-      case 'termine':
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
-        break;
-      case 'annulée':
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        break;
-      default:
-        statusColor = Colors.blue; // Pour les états en cours de traitement
-        statusIcon = Icons.engineering;
-    }
-
-    return Card(
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Icon(statusIcon, size: 40, color: statusColor),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Statut de la commande',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _order!.etat,
-                    style: TextStyle(fontSize: 20, color: statusColor, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-            if (_order!.etat.toLowerCase() != 'termine' && _order!.etat.toLowerCase() != 'annulée')
-              ElevatedButton(
-                onPressed: () {
-                  // Implémenter la mise à jour du statut
-                  // Cette fonctionnalité pourrait être ajoutée ultérieurement
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Constants.vertMenthe,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Mettre à jour'),
-              ),
-          ],
-        ),
-      ),
+  Widget _buildCard(Widget child) {
+    return Container(
+      decoration: cardStyle,
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 20),
+      child: child,
     );
   }
 
   Widget _buildGeneralInfoCard() {
-    return Card(
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Informations générales',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(Icons.numbers, 'ID de commande', _order!.id.toString()),
-            _buildInfoRow(Icons.calendar_today, 'Date de commande', formatDate(_order!.date)),
-            _buildInfoRow(Icons.person_outline, 'Client', _order!.clientName ?? 'Non spécifié'),
-            if (_order!.createdAt != null)
-              _buildInfoRow(Icons.access_time, 'Créée le', formatDate(_order!.createdAt)),
-            if (_order!.updatedAt != null)
-              _buildInfoRow(Icons.update, 'Mise à jour le', formatDate(_order!.updatedAt)),
-          ],
-        ),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Informations générales', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        _buildInfoRow(Icons.numbers, 'ID de commande', _order!.id.toString()),
+        _buildInfoRow(Icons.calendar_today, 'Date de commande', formatDate(_order!.date)),
+        _buildInfoRow(Icons.person_outline, 'Client', _order!.clientName ?? 'Non spécifié'),
+        if (_order!.createdAt != null)
+          _buildInfoRow(Icons.access_time, 'Créée le', formatDate(_order!.createdAt)),
+        if (_order!.updatedAt != null)
+          _buildInfoRow(Icons.update, 'Mise à jour le', formatDate(_order!.updatedAt)),
+      ],
     );
   }
 
   Widget _buildProductDetailsCard() {
-    return Card(
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Détails du produit',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Détails du produit', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        _buildInfoRow(Icons.category, 'Type', _order!.type),
+        _buildInfoRow(Icons.design_services, 'Modèle', _order!.typeModele),
+        _buildInfoRow(Icons.texture, 'Tissu', _order!.typeTissue),
+        _buildInfoRow(Icons.color_lens, 'Couleur', _order!.couleur,
+          suffix: Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: _order!.couleur.startsWith('#')
+                  ? Color(int.parse('0xFF${_order!.couleur.substring(1)}'))
+                  : Colors.grey,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
             ),
-            const SizedBox(height: 16),
-            _buildInfoRow(Icons.category, 'Type', _order!.type ?? 'Non spécifié'),
-            _buildInfoRow(Icons.design_services, 'Modèle', _order!.typeModele ?? 'Non spécifié'),
-            _buildInfoRow(Icons.texture, 'Tissu', _order!.typeTissue ?? 'Non spécifié'),
-            _buildInfoRow(Icons.color_lens, 'Couleur', _order!.couleur ?? 'Non spécifié'),
-            _buildInfoRow(Icons.format_list_numbered, 'Quantité totale', _order!.quantiteTotale.toString()),
-            if (_order!.logo != null && _order!.logo!.isNotEmpty)
-              _buildInfoRow(Icons.image, 'Logo', 'Disponible'),
-          ],
+          ),
         ),
-      ),
+        _buildInfoRow(Icons.format_list_numbered, 'Quantité totale', _order!.quantiteTotale.toString()),
+        if (_order!.logo.isNotEmpty)
+          _buildInfoRow(Icons.image, 'Logo', 'Disponible'),
+        const SizedBox(height: 16),
+        if (_order!.tailles.isNotEmpty) ...[
+          const Text('Tailles', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          ..._order!.tailles.map((taille) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.0),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle_outline, size: 18, color: Colors.indigo),
+                const SizedBox(width: 8),
+                Text('${taille.taille} - ${taille.quantite} pièces'),
+              ],
+            ),
+          )),
+        ],
+      ],
     );
   }
 
   Widget _buildFinancialInfoCard() {
-    return Card(
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Informations financières',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              Icons.euro, 
-              'Prix total', 
-              '${_order!.prixTotal.toStringAsFixed(2)} €'
-            ),
-            _buildInfoRow(
-              Icons.payment, 
-              'Acompte requis', 
-              '${_order!.acompteRequis.toStringAsFixed(2)} €'
-            ),
-            _buildInfoRow(
-              _order!.acomptePaye ? Icons.check_circle : Icons.cancel, 
-              'Acompte payé', 
-              _order!.acomptePaye ? 'Oui' : 'Non',
-              valueColor: _order!.acomptePaye ? Colors.green : Colors.red,
-            ),
-            if (!_order!.acomptePaye)
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      await _commandeService.marquerAcompteCommePaye(_order!.id.toString());
-                      _loadOrderDetails(); // Recharger les détails après la mise à jour
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Acompte marqué comme payé avec succès')),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Erreur: $e')),
-                        );
-                      }
-                    }
-                  },
-                  icon: const Icon(Icons.check),
-                  label: const Text('Marquer l\'acompte comme payé'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Constants.vertMenthe,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Informations financières', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        _buildInfoRow(Icons.euro, 'Prix total', '${_order!.prixTotal.toStringAsFixed(2)} €'),
+        _buildInfoRow(Icons.payment, 'Acompte requis', '${_order!.acompteRequis.toStringAsFixed(2)} €'),
+        _buildInfoRow(
+          _order!.acomptePaye ? Icons.check_circle : Icons.cancel,
+          'Acompte payé',
+          _order!.acomptePaye ? 'Oui' : 'Non',
+          valueColor: _order!.acomptePaye ? Colors.green : Colors.red,
         ),
-      ),
+        if (!_order!.acomptePaye)
+          Padding(
+            padding: const EdgeInsets.only(top: 16.0),
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                try {
+                  await _commandeService.marquerAcompteCommePaye(_order!.id.toString());
+                  _loadOrderDetails();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Acompte marqué comme payé avec succès')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Erreur: $e')),
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.check),
+              label: const Text('Marquer l\'acompte comme payé'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Constants.vertMenthe,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+      ],
     );
   }
 
   Widget _buildDescriptionCard() {
-    return Card(
-      elevation: 3,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Description',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Text(_order!.description),
-          ],
-        ),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Description', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 16),
+        Text(_order!.description),
+      ],
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, {Color? valueColor}) {
+  Widget _buildInfoRow(IconData icon, String label, String value, {Color? valueColor, Widget? suffix}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
@@ -341,7 +284,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
           Icon(icon, size: 18, color: Colors.grey[600]),
           const SizedBox(width: 8),
           SizedBox(
-            width: 120,
+            width: 140,
             child: Text(
               label,
               style: TextStyle(fontSize: 16, color: Colors.grey[800]),
@@ -351,12 +294,16 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
             child: Text(
               value,
               style: TextStyle(
-                fontSize: 16, 
+                fontSize: 16,
                 fontWeight: FontWeight.w500,
                 color: valueColor,
               ),
             ),
           ),
+          if (suffix != null) ...[  
+            const SizedBox(width: 8),
+            suffix,
+          ],
         ],
       ),
     );

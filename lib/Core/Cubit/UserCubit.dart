@@ -42,6 +42,17 @@ class UserCubit extends Cubit<UserState> {
       emit(UserError("Erreur lors de la création : $e"));
     }
   }
+  
+  /// ➕ Ajouter un employé
+  Future<void> addEmployee(String name, {String? numeroTelephone, String? etat, double? salaireH, String? cin}) async {
+    emit(UserLoading());
+    try {
+      await userService.addEmployee(name, numeroTelephone: numeroTelephone, etat: etat, salaireH: salaireH, cin: cin);
+      await fetchUsers(); // rechargement
+    } catch (e) {
+      emit(UserError("Erreur lors de l'ajout de l'employé : $e"));
+    }
+  }
 
   /// ✏️ Modifier un utilisateur
   Future<void> updateUser(String id, UserModel user) async {
