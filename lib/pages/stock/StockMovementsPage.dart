@@ -9,7 +9,7 @@ class StockMovementsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BaseScaffold(
       body: Center(
-        child: Text("Page Vue d'ensemble"),
+        child: Text("Page  d'ensemble"),
       ),
     );
   }
