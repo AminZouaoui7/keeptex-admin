@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:keeptex/responsiveLayout.dart';
 import '../constants.dart';
+import '../Services/ArticleService.dart';
+import '../Core/Models/ArticleModel.dart';
 
 class DrawerPage extends StatefulWidget {
   const DrawerPage({super.key});
@@ -14,12 +16,14 @@ class ButtonsInfo {
   IconData icon;
   String? badge;
   List<SubMenuItem>? subItems;
+  bool Function(List<ArticleModel>)? hasAlerts;
 
   ButtonsInfo({
     required this.title,
     required this.icon,
     this.badge,
     this.subItems,
+    this.hasAlerts,
   });
 }
 
@@ -72,6 +76,7 @@ List<ButtonsInfo> _buttonsNames = [
       SubMenuItem(title: "Alertes rupture", icon: Icons.warning, route: "/stock/alerts"),
       SubMenuItem(title: "Entrées/Sorties", icon: Icons.swap_horiz, route: "/stock/movements"),
     ],
+    hasAlerts: (articles) => articles.any((article) => article.quantite <= article.seuil),
   ),
   ButtonsInfo(
     title: "Production",
@@ -114,6 +119,9 @@ class _DrawerPageState extends State<DrawerPage> with TickerProviderStateMixin {
   late Animation<Offset> _slideAnimation;
   int? _expandedIndex;
   String? _currentRoute;
+  final ArticleService _articleService = ArticleService();
+  List<ArticleModel> _allArticles = [];
+  bool _hasStockAlerts = false;
 
   @override
   void initState() {
@@ -139,6 +147,8 @@ class _DrawerPageState extends State<DrawerPage> with TickerProviderStateMixin {
     _fadeController.forward();
     _slideController.forward();
 
+    _loadStockAlerts();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {
         _currentRoute = ModalRoute.of(context)?.settings.name;
@@ -153,11 +163,33 @@ class _DrawerPageState extends State<DrawerPage> with TickerProviderStateMixin {
     });
   }
 
+  Future<void> _loadStockAlerts() async {
+    try {
+      final articles = await _articleService.getArticles();
+      if (mounted) {
+        setState(() {
+          _allArticles = articles;
+          _hasStockAlerts = articles.any((article) => article.quantite <= article.seuil);
+        });
+      }
+    } catch (e) {
+      debugPrint('Erreur chargement alertes: $e');
+    }
+  }
+
   @override
   void dispose() {
     _fadeController.dispose();
     _slideController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (mounted) {
+      _loadStockAlerts();
+    }
   }
 
   @override
@@ -247,6 +279,7 @@ class _DrawerPageState extends State<DrawerPage> with TickerProviderStateMixin {
     final isExpanded = _expandedIndex == index;
     final subRoutes = item.subItems?.map((s) => s.route).toList() ?? [];
     final isSubSelected = subRoutes.contains(_currentRoute);
+    final bool showAlertBadge = item.hasAlerts?.call(_allArticles) ?? false;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -270,12 +303,39 @@ class _DrawerPageState extends State<DrawerPage> with TickerProviderStateMixin {
               child: ListTile(
                 leading: Icon(item.icon, color: Colors.white),
                 title: Text(item.title, style: TextStyle(color: Colors.white)),
-                trailing: item.subItems != null
-                    ? Icon(
-                  isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                  color: Colors.white,
-                )
-                    : null,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (showAlertBadge)
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                      )
+                    else if (item.badge != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          item.badge!,
+                          style: const TextStyle(color: Colors.white, fontSize: 10),
+                        ),
+                      ),
+                    if (item.subItems != null) ...[
+                      const SizedBox(width: 8),
+                      Icon(
+                        isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -296,6 +356,8 @@ class _DrawerPageState extends State<DrawerPage> with TickerProviderStateMixin {
                 child: Column(
                   children: item.subItems!.map((subItem) {
                     final isSelected = _currentRoute == subItem.route;
+                    final bool isAlertesRupture = subItem.title == "Alertes rupture";
+                    final bool showAlertBadge = isAlertesRupture && _hasStockAlerts;
                     return Container(
                       margin: const EdgeInsets.only(left: 32),
                       child: ListTile(
@@ -303,12 +365,27 @@ class _DrawerPageState extends State<DrawerPage> with TickerProviderStateMixin {
                         selectedTileColor: Colors.white24,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                         leading: Icon(subItem.icon, color: Colors.white.withOpacity(0.8), size: 18),
-                        title: Text(
-                          subItem.title,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
-                            fontSize: 13,
-                          ),
+                        title: Row(
+                          children: [
+                            Text(
+                              subItem.title,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 13,
+                              ),
+                            ),
+                            if (showAlertBadge) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         onTap: () {
                           Navigator.of(context).pushReplacementNamed(subItem.route);

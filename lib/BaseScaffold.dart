@@ -5,8 +5,9 @@ import 'appbar/appbarWidget.dart';
 
 class BaseScaffold extends StatelessWidget {
   final Widget body;
+  final Widget? floatingActionButton;
 
-  const BaseScaffold({Key? key, required this.body}) : super(key: key);
+  const BaseScaffold({Key? key, required this.body, this.floatingActionButton}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +21,7 @@ class BaseScaffold extends StatelessWidget {
       body: SafeArea(
         child: body,
       ),
+      floatingActionButton: floatingActionButton,
       // Ensure the scaffold can resize properly
       resizeToAvoidBottomInset: true,
     );

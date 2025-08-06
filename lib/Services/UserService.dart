@@ -8,7 +8,7 @@ class UserService {
 
   UserService() {
     dio = Dio(BaseOptions(
-      baseUrl: 'http://172.21.160.1:5000/api',
+      baseUrl: 'http://192.168.1.128:5000/api',
       connectTimeout: Duration(seconds: 30),
       receiveTimeout: Duration(seconds: 15),
     ));
