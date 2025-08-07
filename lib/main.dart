@@ -37,8 +37,7 @@ import 'pages/tools/factures.dart';
 import 'pages/tools/commande.dart';
 
 // Settings
-import 'pages/settings/profile_page.dart';
-import 'pages/settings/roles_page.dart';
+
 
 // Widget tree / home
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -114,9 +113,7 @@ class MyApp extends StatelessWidget {
           '/tools/invoices': (context) => InvoicesPage(),
           '/tools/delivery': (context) => DeliveryPage(),
 
-          // Settings
-          '/settings/profile': (context) => ProfilePage(),
-          '/settings/roles': (context) => RolesPage(),
+
         },
       ),
     );

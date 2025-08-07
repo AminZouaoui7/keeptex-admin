@@ -3,7 +3,7 @@ import '../Core/Models/CommandeModel.dart';
 import '../Core/utils/cacheHelper.dart';
 
 class CommandeService {
-    final Dio dio = Dio(BaseOptions(baseUrl: 'http://172.21.160.1:5000/api')); // Remplace par ton IP si besoin
+    final Dio dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.128:5000/api')); // Remplace par ton IP si besoin
 
   Future<Options> _getAuthHeaders() async {
     final token = await CacheHelper().getData(key: "token");

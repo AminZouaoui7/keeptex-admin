@@ -195,50 +195,51 @@ class _StockMovementsPageState extends State<StockMovementsPage> with SingleTick
         onRefresh: _refreshMovements,
         child: CustomScrollView(
           slivers: [
-            SliverAppBar(
-              title: const Text('Mouvements de Stock'),
-              pinned: true,
-              floating: true,
-              expandedHeight: 120,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Theme.of(context).primaryColor,
-                        Theme.of(context).primaryColor.withOpacity(0.8),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
+          SliverAppBar(title: const Text('Mouvements de Stock'),
+            automaticallyImplyLeading: false, // retire l'icône du menu
+          pinned: true,
+          floating: true,
+          expandedHeight: 120,
+          flexibleSpace: FlexibleSpaceBar(
+            background: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).primaryColor,
+                    Theme.of(context).primaryColor.withOpacity(0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ),
-              bottom: TabBar(
-                controller: _tabController,
-                indicatorColor: Colors.white,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white70,
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(25),
-                  color: Colors.white.withOpacity(0.2),
-                ),
-                tabs: const [
-                  Tab(
-                    icon: Icon(Icons.list_alt),
-                    text: 'Tous',
-                  ),
-                  Tab(
-                    icon: Icon(Icons.trending_up),
-                    text: 'Entrées',
-                  ),
-                  Tab(
-                    icon: Icon(Icons.trending_down),
-                    text: 'Sorties',
-                  ),
-                ],
               ),
             ),
+          ),
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            indicator: BoxDecoration(
+              borderRadius: BorderRadius.circular(25),
+              color: Colors.white.withOpacity(0.2),
+            ),
+            tabs: const [
+              Tab(
+                icon: Icon(Icons.list_alt),
+                text: 'Tous',
+              ),
+              Tab(
+                icon: Icon(Icons.trending_up),
+                text: 'Entrées',
+              ),
+              Tab(
+                icon: Icon(Icons.trending_down),
+                text: 'Sorties',
+              ),
+            ],
+          ),
+        ),
+
             
             SliverToBoxAdapter(
               child: Column(

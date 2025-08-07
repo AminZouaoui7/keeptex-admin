@@ -102,14 +102,7 @@ List<ButtonsInfo> _buttonsNames = [
       SubMenuItem(title: "Bons de commande", icon: Icons.local_shipping, route: "/tools/delivery"),
     ],
   ),
-  ButtonsInfo(
-    title: "Paramètres",
-    icon: Icons.settings_outlined,
-    subItems: [
-      SubMenuItem(title: "Profil utilisateur", icon: Icons.person, route: "/settings/profile"),
-      SubMenuItem(title: "Rôles & permissions", icon: Icons.security, route: "/settings/roles"),
-    ],
-  ),
+
 ];
 
 class _DrawerPageState extends State<DrawerPage> with TickerProviderStateMixin {
