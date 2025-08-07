@@ -58,6 +58,13 @@ class EndPoint {
   // 🖼️ Upload
   static String uploadImage = "$baseUrl/upload";
   static String uploadMultiple = "$baseUrl/upload/multiple";
+
+  // 📅 Attendance & Pointage
+  static String markPresent(String userId) => "$baseUrl/users/$userId/mark-present";
+  static String markAbsent(String userId) => "$baseUrl/users/$userId/mark-absent";
+  static String addAdvance(String userId) => "$baseUrl/users/$userId/add-advance";
+  static String getAttendanceHistory(String userId) => "$baseUrl/users/$userId/attendance";
+  static String getAttendanceStats(String userId) => "$baseUrl/users/$userId/attendance-stats";
 }
 
 class ApiKey {
