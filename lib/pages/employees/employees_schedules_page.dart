@@ -362,7 +362,7 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
 
 
   void _showAddAttendanceDialog() {
-    final TextEditingController nameController = TextEditingController();
+    UserModel? selectedEmployee;
     String status = 'Présent';
     final TextEditingController checkInController = TextEditingController(text: '08:30');
     final TextEditingController checkOutController = TextEditingController(text: '17:30');
@@ -375,9 +375,14 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Nom de l\'employé'),
+              DropdownButtonFormField<UserModel>(
+                decoration: const InputDecoration(labelText: 'Employé'),
+                items: employees
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e.name ?? 'Sans nom')))
+                    .toList(),
+                onChanged: (value) {
+                  selectedEmployee = value;
+                },
               ),
               DropdownButtonFormField<String>(
                 value: status,
@@ -406,20 +411,84 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
             child: const Text('Annuler'),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                attendances.add(EmployeeAttendance(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
-                  employeeId: DateTime.now().millisecondsSinceEpoch.toString(),
-                  employeeName: nameController.text,
-                  date: selectedDate,
-                  status: status,
-                  checkIn: checkInController.text,
-                  checkOut: checkOutController.text,
-                  advance: 0.0,
-                ));
-              });
-              Navigator.pop(context);
+            onPressed: () async {
+              if (selectedEmployee == null) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Veuillez sélectionner un employé')),
+                  );
+                }
+                return;
+              }
+              
+              final employeeId = selectedEmployee!.id?.toString();
+              if (employeeId == null || employeeId.isEmpty) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Erreur: ID employé invalide')),
+                  );
+                }
+                return;
+              }
+              
+              try {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Enregistrement en cours...')),
+                  );
+                }
+                
+                if (status == 'Présent') {
+                  await _attendanceService.markPresent(employeeId, selectedDate);
+                  setState(() {
+                    final index = employees.indexWhere((e) => e.id == selectedEmployee!.id);
+                    if (index != -1) {
+                      employees[index] = selectedEmployee!.copyWith(conge: (selectedEmployee!.conge ?? 0) + 1);
+                    }
+                  });
+                } else if (status == 'Absent') {
+                  await _attendanceService.markAbsent(employeeId, selectedDate);
+                  setState(() {
+                    final index = employees.indexWhere((e) => e.id == selectedEmployee!.id);
+                    if (index != -1) {
+                      employees[index] = selectedEmployee!.copyWith(absence: (selectedEmployee!.absence ?? 0) + 1);
+                    }
+                  });
+                }
+                
+                // Ajouter le pointage à la liste locale
+                setState(() {
+                  attendances.add(EmployeeAttendance(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    employeeId: employeeId,
+                    employeeName: selectedEmployee!.name ?? 'Unknown',
+                    date: selectedDate,
+                    status: status,
+                    checkIn: checkInController.text,
+                    checkOut: checkOutController.text,
+                    advance: 0.0,
+                  ));
+                });
+                
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Pointage ajouté avec succès'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Erreur lors de l\'ajout: ${e.toString()}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             child: const Text('Ajouter'),
           ),
@@ -447,12 +516,10 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
                   .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                   .toList(),
               onChanged: (value) {
-                setState(() {
-                  status = value!;
-                });
+                status = value!;
               },
             ),
-            if (attendance.status == 'Présent') ...[
+            if (status == 'Présent') ...[
               TextField(
                 controller: checkInController,
                 decoration: const InputDecoration(labelText: 'Heure d\'entrée'),
@@ -488,7 +555,7 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
                     );
                   }
 
-                  if (attendance.status == 'Présent') {
+                  if (status == 'Présent') {
                     await _attendanceService.markPresent(employeeId, attendance.date);
                     setState(() {
                       final index = employees.indexWhere((e) => e.id == employee.id);
@@ -496,7 +563,7 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
                         employees[index] = employee.copyWith(conge: (employee.conge ?? 0) + 1);
                       }
                     });
-                  } else {
+                  } else if (status == 'Absent') {
                     await _attendanceService.markAbsent(employeeId, attendance.date);
                     setState(() {
                       final index = employees.indexWhere((e) => e.id == employee.id);
@@ -507,6 +574,7 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
                   }
                 
                 setState(() {
+                  attendance.status = status;
                   attendance.checkIn = checkInController.text;
                   attendance.checkOut = checkOutController.text;
                 });
