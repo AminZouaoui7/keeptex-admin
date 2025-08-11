@@ -145,17 +145,20 @@ import 'package:flutter/foundation.dart';
     /// 📅 Créer ou mettre à jour une présence
   /// Map frontend French status to backend lowercase status
   String mapFrontendToBackendStatus(String status) {
-    switch (status) {
-      case 'Présent':
+    // Normalize status string: lowercase and replace 'é' with 'e'
+    String normalizedStatus = status.toLowerCase().replaceAll('é', 'e');
+    
+    switch (normalizedStatus) {
+      case 'present':
         return 'present';
-      case 'Absent':
+      case 'absent':
         return 'absent';
-      case 'Congé':
+      case 'conge':
         return 'conge';
-      case 'Non défini':
+      case 'non defini':
         return 'non_defini';
       default:
-        return status.toLowerCase();
+        return normalizedStatus;
     }
   }
 

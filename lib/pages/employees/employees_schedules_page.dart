@@ -44,17 +44,40 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
   }
 
   Future<void> _loadEmployees() async {
+    await _refreshData();
+  }
+
+  Future<void> _updateEmployeeAttendance(String employeeId, String statusFR) async {
+    try {
+      await _attendanceService.markAttendance(employeeId, selectedDate, statusFR);
+      await _refreshData(); // Refresh both daily stats and employee list
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Présence mise à jour avec succès')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    }
+  }
+
+  /// 🔄 Rafraîchir les données : stats quotidiennes + liste employés avec stats
+  Future<void> _refreshData() async {
     try {
       setState(() => isLoading = true);
-
-      // 1) Charger les employés
+      
+      // 1) Recharger les employés avec leurs statistiques
       final allUsers = await _userService.getAllUsers();
       final employeeList = allUsers.where((u) => u.role == 'employee').toList();
 
-      // 2) Charger les présences de la date
+      // 2) Recharger les présences de la date
       final attendanceList = await _attendanceService.getAttendanceByDate(selectedDate);
 
-      // 3) Fusion (1 présence par employé) + statut toujours FR
+      // 3) Fusion avec statut mis à jour
       final merged = employeeList.map((employee) {
         final att = attendanceList.firstWhere(
               (a) => a.employeeId == employee.id?.toString(),
@@ -67,7 +90,7 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
         );
         return att.copyWith(
           status: _normalizeToFR(att.status),
-          date: selectedDate, // force la date affichée
+          date: selectedDate,
         );
       }).toList();
 
@@ -80,25 +103,7 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
       setState(() => isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors du chargement: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _updateEmployeeAttendance(String employeeId, String statusFR) async {
-    try {
-      await _attendanceService.markAttendance(employeeId, selectedDate, statusFR);
-      await _loadEmployees(); // refléter la DB
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Présence mise à jour avec succès')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
+          SnackBar(content: Text('Erreur lors du rafraîchissement: $e')),
         );
       }
     }
@@ -137,7 +142,7 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
           Row(
             children: [
               IconButton(
-                onPressed: _loadEmployees,
+                onPressed: _refreshData,
                 icon: const Icon(Icons.refresh),
                 tooltip: 'Rafraîchir',
               ),
@@ -152,7 +157,7 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
                   );
                   if (date != null) {
                     setState(() => selectedDate = date);
-                    await _loadEmployees();
+                    await _refreshData();
                   }
                 },
                 icon: const Icon(Icons.calendar_today),
@@ -210,7 +215,7 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
           const SizedBox(width: 16),
           _buildStatCard('Présents', '$presentCount', Colors.green),
           const SizedBox(width: 16),
-          _buildStatCard('Absents', '$absentCount', Colors.red),
+          _buildStatCard('Absences', '$absentCount', Colors.red), // Changé de 'Absents' à 'Absences'
         ],
       ),
     );
@@ -388,7 +393,7 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
                   return;
                 }
                 await _attendanceService.markAttendance(employeeId, attendance.date, status);
-                await _loadEmployees();
+                await _refreshData(); // Rafraîchir les données après mise à jour
                 if (mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -444,7 +449,7 @@ class _EmployeesSchedulesPageState extends State<EmployeesSchedulesPage> {
       }).toList();
 
       await _attendanceService.saveBulk(selectedDate, records);
-      await _loadEmployees(); // rafraîchir depuis la DB
+      await _refreshData(); // rafraîchir depuis la DB
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
