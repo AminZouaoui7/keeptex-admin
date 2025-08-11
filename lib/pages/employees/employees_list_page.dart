@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import '../../BaseScaffold.dart';
 import '../../Core/Cubit/UserCubit.dart';
 import '../../Core/Models/UserModel.dart';
 import '../../Core/State/userState.dart';
+import '../../Core/ViewModels/employee_card_vm.dart';
 import '../../Services/UserService.dart';
 import '../../constants.dart';
 
@@ -24,12 +26,13 @@ class _EmployeesListPageState extends State<EmployeesListPage> {
   final TextEditingController _cinController = TextEditingController();
   final TextEditingController _salaireController = TextEditingController();
   String _etatValue = 'Déclaré'; // Valeur par défaut
+  DateTime selectedMonth = DateTime.now();
 
   @override
   void initState() {
     super.initState();
     _userCubit = UserCubit(UserService());
-    _loadEmployees();
+    _loadEmployeesWithStats();
   }
 
   @override
@@ -43,10 +46,28 @@ class _EmployeesListPageState extends State<EmployeesListPage> {
     super.dispose();
   }
 
-  Future<void> _loadEmployees() async {
-    // Appeler fetchUsers pour charger les données
-    // La mise à jour de l'UI sera gérée par le BlocBuilder dans le widget build
-    _userCubit.fetchUsers();
+  Future<void> _loadEmployeesWithStats() async {
+    final monthStr = '${selectedMonth.year}-${selectedMonth.month.toString().padLeft(2, '0')}';
+    await _userCubit.fetchUsersWithStats(monthStr);
+  }
+
+  Future<void> _selectMonth() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedMonth,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      initialDatePickerMode: DatePickerMode.year,
+      helpText: 'Sélectionner le mois',
+      fieldLabelText: 'Mois',
+    );
+    
+    if (picked != null) {
+      setState(() {
+        selectedMonth = DateTime(picked.year, picked.month);
+      });
+      await _loadEmployeesWithStats();
+    }
   }
 
   void _showAddEmployeeDialog() {
@@ -507,7 +528,7 @@ class _EmployeesListPageState extends State<EmployeesListPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // En-tête avec titre et bouton d'ajout
+            // En-tête avec titre, sélecteur de mois et bouton d'ajout
             Container(
               padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
               decoration: BoxDecoration(
@@ -531,16 +552,46 @@ class _EmployeesListPageState extends State<EmployeesListPage> {
                       ),
                     ],
                   ),
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddEmployeeDialog(),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Ajouter'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Constants.vertMenthe,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
+                  Row(
+                    children: [
+                      // Sélecteur de mois
+                      OutlinedButton.icon(
+                        onPressed: _selectMonth,
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: Text(
+                          DateFormat('MMMM yyyy', 'fr_FR').format(selectedMonth),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Constants.bleuCanard),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Bouton actualiser
+                      OutlinedButton.icon(
+                        onPressed: _loadEmployeesWithStats,
+                        icon: const Icon(Icons.refresh, size: 16),
+                        label: const Text('Actualiser'),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Constants.vertMenthe),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Bouton ajouter
+                      ElevatedButton.icon(
+                        onPressed: () => _showAddEmployeeDialog(),
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Ajouter'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Constants.vertMenthe,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -550,11 +601,15 @@ class _EmployeesListPageState extends State<EmployeesListPage> {
               child: BlocBuilder<UserCubit, UserState>(
                 bloc: _userCubit,
                 builder: (context, state) {
+                  // 1) Chargement
                   if (state is UserLoading) {
                     return const Center(
                       child: CircularProgressIndicator(color: Constants.vertMenthe),
                     );
-                  } else if (state is UserError) {
+                  }
+
+                  // 2) Erreur réseau / API
+                  if (state is UserError) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -564,7 +619,7 @@ class _EmployeesListPageState extends State<EmployeesListPage> {
                           Text('Erreur: ${state.message}', style: const TextStyle(fontSize: 16)),
                           const SizedBox(height: 16),
                           ElevatedButton(
-                            onPressed: _loadEmployees,
+                            onPressed: _loadEmployeesWithStats,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Constants.vertMenthe,
                               foregroundColor: Colors.white,
@@ -574,8 +629,11 @@ class _EmployeesListPageState extends State<EmployeesListPage> {
                         ],
                       ),
                     );
-                  } else if (state is UserLoaded) {
-                    final employees = state.users.where((user) => user.role?.toLowerCase() == 'employee').toList();
+                  }
+
+                  // 3) Version enrichie (VM fusionnée avec stats)
+                  if (state is UserLoadedEnriched) {
+                    final employees = state.employeesVM;
 
                     if (employees.isEmpty) {
                       return Center(
@@ -584,13 +642,10 @@ class _EmployeesListPageState extends State<EmployeesListPage> {
                           children: [
                             Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
                             const SizedBox(height: 16),
-                            Text(
-                              'Aucun employé trouvé',
-                              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
-                            ),
+                            Text('Aucun employé trouvé', style: TextStyle(fontSize: 18, color: Colors.grey[600])),
                             const SizedBox(height: 16),
                             ElevatedButton.icon(
-                              onPressed: () => _showAddEmployeeDialog(),
+                              onPressed: _showAddEmployeeDialog,
                               icon: const Icon(Icons.add),
                               label: const Text('Ajouter un employé'),
                               style: ElevatedButton.styleFrom(
@@ -604,116 +659,77 @@ class _EmployeesListPageState extends State<EmployeesListPage> {
                       );
                     }
 
-                    // Grille de cartes moderne pour afficher les employés
                     return GridView.builder(
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 4,
+                        crossAxisCount: 3,
                         crossAxisSpacing: 8,
                         mainAxisSpacing: 8,
+                        childAspectRatio: 1.5,
                       ),
                       itemCount: employees.length,
                       itemBuilder: (context, index) {
                         final employee = employees[index];
-                        return Card(
-                          elevation: 3,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () => _showEditEmployeeDialog(employee),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          employee.name ?? 'N/A',
-                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Constants.bleuOcean),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: employee.etat == 'Déclaré' ? Constants.vertJade.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          employee.etat ?? 'N/A',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: employee.etat == 'Déclaré' ? Constants.vertJade : Colors.orange,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Divider(height: 6),
-                                  Expanded(
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            mainAxisAlignment: MainAxisAlignment.start,
-                                            children: [
-                                              _infoRow(Icons.phone, employee.numeroTelephone ?? 'N/A'),
-                                              _infoRow(Icons.badge, 'CIN: ${employee.cin ?? 'N/A'}'),
-                                              _infoRow(Icons.attach_money, '${employee.salaireH ?? 0} DT/h'),
-
-                                            ],
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            mainAxisAlignment: MainAxisAlignment.start,
-                                            children: [
-                                              _infoRow(Icons.account_balance_wallet, '${employee.accounte ?? 0} DT'),
-                                              _infoRow(Icons.beach_access, 'Congé: ${employee.conge ?? 0} j'),
-                                              _infoRow(Icons.access_time, 'Absence: ${employee.absence ?? 0} j'),
-                                              _infoRow(Icons.attach_money, 'Accounte ${employee.accounte ?? 0}'),
-
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.edit, color: Constants.vertMenthe, size: 20),
-                                        onPressed: () => _showEditEmployeeDialog(employee),
-                                        tooltip: 'Modifier',
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                                        onPressed: () => _showDeleteConfirmationDialog(employee),
-                                        tooltip: 'Supprimer',
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
+                        return _employeeMiniCardVM(employee);
                       },
                     );
                   }
-                  return const Center(child: Text('Chargement des données...'));
+
+                  // 4) Fallback ancien état (liste brute Users)
+                  if (state is UserLoaded) {
+                    final employees = state.users.where((u) => (u.role ?? '').toLowerCase() == 'employee').toList();
+
+                    if (employees.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            Text('Aucun employé trouvé', style: TextStyle(fontSize: 18, color: Colors.grey[600])),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: _showAddEmployeeDialog,
+                              icon: const Icon(Icons.add),
+                              label: const Text('Ajouter un employé'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Constants.vertMenthe,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return GridView.builder(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                      childAspectRatio: 1.5,
+                    ),
+                    itemCount: employees.length,
+                    itemBuilder: (context, index) {
+                      final employee = employees[index];
+                      return _employeeMiniCardVM(EmployeeCardVM(
+                        id: employee.id ?? '',
+                        user: employee,
+                        name: employee.name ?? 'N/A',
+                        phone: employee.numeroTelephone,
+                        cin: employee.cin,
+                        salaireH: employee.salaireH ?? 0,
+                        accounte: employee.accounte ?? 0,
+                        congeDays: employee.conge ?? 0,
+                        absentDays: employee.absence ?? 0,
+                        presentDays: 0,
+                      ));
+                    },
+                  );
+                  }
+
+                  // 5) Repli par défaut (évite "The body might complete normally...")
+                  return const SizedBox.shrink();
                 },
               ),
             ),
@@ -723,6 +739,164 @@ class _EmployeesListPageState extends State<EmployeesListPage> {
     );
   }
   
+  Widget _employeeMiniCardVM(EmployeeCardVM employee) {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => _showEditEmployeeDialog(employee.user),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: employee name and status badge
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      employee.name,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Constants.bleuOcean,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: employee.user.etat == 'Déclaré' 
+                          ? Colors.green.withOpacity(0.2) 
+                          : Colors.orange.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      employee.user.etat ?? 'N/A',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: employee.user.etat == 'Déclaré' 
+                            ? Colors.green 
+                            : Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Divider between header and body
+              const Divider(height: 1, thickness: 1),
+              
+              const SizedBox(height: 12),
+              
+              // Two-column layout
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Left column
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _infoRowWithLabel(Icons.phone, 'Téléphone', employee.phone ?? 'N/A'),
+                          const SizedBox(height: 8),
+                          _infoRowWithLabel(Icons.badge, 'CIN', employee.cin ?? 'N/A'),
+                          const SizedBox(height: 8),
+                          _infoRowWithLabel(Icons.attach_money, 'Salaire', '${employee.salaireH.toStringAsFixed(2)} DT/h'),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(width: 16),
+                    
+                    // Right column
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _infoRowWithLabel(Icons.account_balance_wallet, 'Compte', '${employee.accounte.toStringAsFixed(2)} DT'),
+                          const SizedBox(height: 8),
+                          _infoRowWithLabel(Icons.check_circle, 'Présents', '${employee.presentDays} j'),
+                          const SizedBox(height: 8),
+                          _infoRowWithLabel(Icons.cancel, 'Absences', '${employee.absentDays} j'),
+                          const SizedBox(height: 8),
+                          _infoRowWithLabel(Icons.beach_access, 'Congés', '${employee.congeDays} j'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Actions at bottom right
+              Align(
+                alignment: Alignment.bottomRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Constants.vertMenthe, size: 20),
+                      onPressed: () => _showEditEmployeeDialog(employee.user),
+                      tooltip: 'Modifier',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                      onPressed: () => _showDeleteConfirmationDialog(employee.user),
+                      tooltip: 'Supprimer',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRowWithLabel(IconData icon, String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 14, color: Constants.bleuCanard),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
   Widget _infoRow(IconData icon, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),

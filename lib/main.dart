@@ -8,6 +8,7 @@ import 'package:keeptex/pages/stock/StockMovementsPage.dart';
 import 'package:keeptex/pages/tools/commande.dart';
 import 'package:keeptex/pages/tools/factures.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'Core/utils/cacheHelper.dart';
 
 import 'Services/UserService.dart';
@@ -47,6 +48,7 @@ import 'Core/Cubit/UserCubit.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await CacheHelper.init();
+  await initializeDateFormatting('fr_FR', null);
   runApp(MyApp());
 }
 

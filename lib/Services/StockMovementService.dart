@@ -4,7 +4,7 @@ import '../Core/utils/cacheHelper.dart';
 
 class StockMovementService {
   final Dio dio = Dio(BaseOptions(
-    baseUrl: 'http://192.168.1.128:5000/api',
+    baseUrl: 'http://192.168.240.1:5000/api',
     connectTimeout: Duration(seconds: 10),
     receiveTimeout: Duration(seconds: 10),
   ));
